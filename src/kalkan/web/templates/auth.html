@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Hesap oluştur") if mode == "register" else _("Giriş yap") }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  {% if mode == "register" %}
+  <h1>{{ _("Ücretsiz hesap oluşturun") }}</h1>
+  <p class="muted">{{ _("Sitenizi ekleyin, size ait olduğunu doğrulayın ve sade güvenlik raporunuzu alın.") }}</p>
+  {% else %}
+  <h1>{{ _("Giriş yapın") }}</h1>
+  {% endif %}
+
+  {% if error %}<div class="flash flash-error" role="alert">{{ error | loc }}</div>{% endif %}
+
+  <form method="post" action="/{{ mode }}" class="form">
+    {% include "_csrf.html" %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>{{ _("E-posta") }}
+      <input type="email" name="email" value="{{ email }}" autocomplete="email" required maxlength="320">
+    </label>
+    <label>{{ _("Şifre") }}
+      <input type="password" name="password" required
+             autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}"
+             {% if mode == "register" %}minlength="10"{% endif %}>
+    </label>
+    {% if mode == "register" %}
+    <label>{{ _("Şifre (tekrar)") }}
+      <input type="password" name="password_confirm" required minlength="10" autocomplete="new-password">
+    </label>
+    <label class="check">
+      <input type="checkbox" name="consent" value="yes" required>
+      <span>{{ _("Yalnızca bana ait olan veya taramak için yazılı iznim bulunan siteleri tarayacağımı onaylıyorum.") }}</span>
+    </label>
+    <button type="submit" class="btn btn-block">{{ _("Hesap oluştur") }}</button>
+    <p class="muted small">{{ _("Zaten hesabınız var mı?") }} <a href="/login?next={{ next | urlencode }}">{{ _("Giriş yapın") }}</a></p>
+    {% else %}
+    <button type="submit" class="btn btn-block">{{ _("Giriş yap") }}</button>
+    <p class="muted small"><a href="/forgot-password">{{ _("Şifremi unuttum") }}</a> · {{ _("Hesabınız yok mu?") }} <a href="/register?next={{ next | urlencode }}">{{ _("Ücretsiz oluşturun") }}</a></p>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}

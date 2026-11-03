@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Kalkan{% endblock %} · Kalkan</title>
+  <meta name="description" content="{{ _("KOBİ'ler için sade web sitesi güvenlik taraması: SSL, açık portlar, eski yazılımlar ve e-posta sahteciliği.") }}">
+  <link rel="stylesheet" href="/report.css">
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
+  <script src="{{ url_for('static', path='app.js') }}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% block header %}
+  <header class="site-header">
+    <div class="container nav">
+      <a class="logo" href="/"><span class="logo-mark" aria-hidden="true"></span>Kalkan</a>
+      <nav class="nav-links" aria-label="{{ _("Ana menü") }}">
+        {% if user %}
+        <a href="/dashboard">{{ _("Alan adlarım") }}</a>
+        <a href="/team" class="nav-org" title="{{ _("Ekip ve plan") }}">{{ membership.organization.name if membership else _("Ekip") }}</a>
+        <a href="/account" class="nav-email" title="{{ _("Hesabım") }}">{{ user.email }}</a>
+        <form method="post" action="/logout" class="inline">
+          {% include "_csrf.html" %}
+          <button type="submit" class="link-button">{{ _("Çıkış") }}</button>
+        </form>
+        {% else %}
+        <a href="/login">{{ _("Giriş yap") }}</a>
+        <a class="btn btn-small" href="/register">{{ _("Ücretsiz başla") }}</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  {% endblock %}
+  {% if email_unverified %}
+  <div class="banner" role="status">
+    <div class="container banner-inner">
+      <span>{{ _("E-posta adresinizi doğrulayın: tarama yapabilmek ve uyarı alabilmek için gerekli.") }}</span>
+      <form method="post" action="/verify-email/resend" class="inline">
+        {% include "_csrf.html" %}
+        <button type="submit" class="link-button link-accent">{{ _("Bağlantıyı tekrar gönder") }}</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  {% block main %}
+  <main class="container page">
+    {% include "_flashes.html" %}
+    {% block content %}{% endblock %}
+  </main>
+  {% endblock %}
+  {% block footer %}
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>Kalkan {{ app_version }} · {{ _("Yalnızca sahibi olduğunuz siteleri tarayın.") }}</span>
+      <nav class="lang-switch" aria-label="{{ _("Dil") }}">
+        {% for code, name in LANGUAGES.items() %}
+        {% if code == lang %}<strong aria-current="true" lang="{{ code }}">{{ name }}</strong>
+        {% else %}<a href="/lang/{{ code }}?next={{ current_path | urlencode }}" hreflang="{{ code }}" lang="{{ code }}">{{ name }}</a>{% endif %}
+        {% endfor %}
+      </nav>
+    </div>
+  </footer>
+  {% endblock %}
+</body>
+</html>

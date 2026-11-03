@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Ekip ve plan") }}{% endblock %}
+{% block content %}
+{% set role = membership.role %}
+{% set is_owner = role.value == "owner" %}
+{% set is_admin = role.value in ("owner", "admin") %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ _("Çalışma alanı") }} · {{ _("rolünüz: {role}", role=role.label | loc) }}</p>
+    <h1>{{ organization.name }}</h1>
+  </div>
+  {% if other_memberships %}
+  <details class="switcher">
+    <summary class="btn btn-ghost btn-small">{{ _("Çalışma alanını değiştir") }}</summary>
+    <ul>
+      {% for m in other_memberships %}
+      <li>
+        <form method="post" action="/orgs/{{ m.organization_id }}/switch" class="inline">
+          {% include "_csrf.html" %}
+          <button type="submit" class="link-button">{{ m.organization.name }} <span class="muted small">({{ m.role.label | loc }})</span></button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</div>
+
+<section class="card">
+  <h2>{{ _("Plan") }}</h2>
+  <p>
+    {{ _m("Şu anki planınız: <strong>{plan}</strong>", plan=organization.limits.label | loc) }}
+    · {{ _("{used}/{limit} alan adı", used=usage.domains[0], limit=usage.domains[1]) }}
+    · {{ _("{used}/{limit} kişi (bekleyen davetler dahil)", used=usage.members[0], limit=usage.members[1]) }}
+  </p>
+  <div class="table-wrap">
+    <table class="table plan-table">
+      <thead>
+        <tr>
+          <th></th>
+          {% for plan, limits in plans.items() %}
+          <th {% if plan == organization.plan %}class="plan-current" aria-current="true"{% endif %}>{{ limits.label | loc }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>{{ _("Alan adı") }}</td>{% for _p, l in plans.items() %}<td>{{ l.domains }}</td>{% endfor %}</tr>
+        <tr><td>{{ _("Alan adı başına günlük tarama") }}</td>{% for _p, l in plans.items() %}<td>{{ l.scans_per_domain_per_day }}</td>{% endfor %}</tr>
+        <tr><td>{{ _("Otomatik tarama") }}</td>{% for _p, l in plans.items() %}<td>{{ _("haftalık ve aylık") if 7 in l.intervals else _("aylık") }}</td>{% endfor %}</tr>
+        <tr><td>{{ _("Ekip üyesi") }}</td>{% for _p, l in plans.items() %}<td>{{ l.members }}</td>{% endfor %}</tr>
+        <tr><td>{{ _("REST API") }}</td>{% for _p, l in plans.items() %}<td>{{ _("var") if l.api else "-" }}</td>{% endfor %}</tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">{{ _("Ödeme altyapısı henüz yok: plan değişikliklerini şimdilik biz yapıyoruz. Yükseltmek için bize yazın.") }}</p>
+</section>
+
+<section class="card">
+  <h2>{{ _("Üyeler") }}</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ _("E-posta") }}</th><th>{{ _("Rol") }}</th><th>{{ _("Katılma") }}</th><th></th></tr></thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>{{ m.user.email }}{% if m.id == membership.id %} <span class="muted small">{{ _("(siz)") }}</span>{% endif %}</td>
+          <td>
+            {% if is_owner and m.id != membership.id %}
+            <form method="post" action="/team/members/{{ m.id }}/role" class="inline role-form">
+              {% include "_csrf.html" %}
+              <label class="sr-only" for="role-{{ m.id }}">{{ _("Rol") }}</label>
+              <select id="role-{{ m.id }}" name="role">
+                {% for r in roles %}<option value="{{ r.value }}" {{ "selected" if r == m.role }}>{{ r.label | loc }}</option>{% endfor %}
+              </select>
+              <button type="submit" class="link-button link-accent">{{ _("Kaydet") }}</button>
+            </form>
+            {% else %}{{ m.role.label | loc }}{% endif %}
+          </td>
+          <td>{{ m.created_at | local_time }}</td>
+          <td class="right">
+            {% if m.id != membership.id and is_admin and (is_owner or m.role.value == "member") %}
+            <form method="post" action="/team/members/{{ m.id }}/remove" class="inline">
+              {% include "_csrf.html" %}
+              <button type="submit" class="link-button link-danger">{{ _("Çıkar") }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">{{ _("Üye: raporları görür ve tarama başlatır. Yönetici: ayrıca alan adı ekler, doğrular, siler ve kişi davet eder. Sahip: ayrıca rolleri ve çalışma alanının adını değiştirir.") }}</p>
+</section>
+
+{% if is_admin %}
+<section class="card">
+  <h2>{{ _("Kişi davet et") }}</h2>
+  <form method="post" action="/team/invitations" class="inline-form">
+    {% include "_csrf.html" %}
+    <label class="grow">
+      <span class="sr-only">{{ _("E-posta") }}</span>
+      <input type="email" name="email" placeholder="{{ _("ornek@firmaniz.com.tr") }}" required maxlength="320" autocomplete="off">
+    </label>
+    <label>
+      <span class="sr-only">{{ _("Rol") }}</span>
+      <select name="role">
+        <option value="member">{{ roles[0].label | loc }}</option>
+        <option value="admin">{{ roles[1].label | loc }}</option>
+      </select>
+    </label>
+    <button type="submit" class="btn">{{ _("Davet gönder") }}</button>
+  </form>
+  {% if invitations %}
+  <h3 class="subhead">{{ _("Bekleyen davetler") }}</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ _("E-posta") }}</th><th>{{ _("Rol") }}</th><th>{{ _("Son geçerlilik") }}</th><th></th></tr></thead>
+      <tbody>
+        {% for invitation in invitations %}
+        <tr>
+          <td>{{ invitation.email }}</td>
+          <td>{{ invitation.role.label | loc }}</td>
+          <td>{{ invitation.expires_at | local_time }}</td>
+          <td class="right">
+            <form method="post" action="/team/invitations/{{ invitation.id }}/revoke" class="inline">
+              {% include "_csrf.html" %}
+              <button type="submit" class="link-button link-danger">{{ _("İptal et") }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if is_owner %}
+<section class="card">
+  <h2>{{ _("Çalışma alanının adı") }}</h2>
+  <form method="post" action="/team/name" class="inline-form">
+    {% include "_csrf.html" %}
+    <label class="grow">
+      <span class="sr-only">{{ _("Ad") }}</span>
+      <input type="text" name="name" value="{{ organization.name }}" required maxlength="100">
+    </label>
+    <button type="submit" class="btn btn-ghost">{{ _("Kaydet") }}</button>
+  </form>
+</section>
+{% endif %}
+
+{% if members | length > 1 %}
+<details class="danger-zone">
+  <summary>{{ _("Çalışma alanından ayrıl") }}</summary>
+  <form method="post" action="/team/leave">
+    {% include "_csrf.html" %}
+    <p class="muted">{{ _("Bu çalışma alanının alan adlarına ve raporlarına erişiminiz ve buradaki API tokenleriniz kalkar.") }}</p>
+    <button type="submit" class="btn btn-danger">{{ _("Ayrıl") }}</button>
+  </form>
+</details>
+{% endif %}
+{% endblock %}

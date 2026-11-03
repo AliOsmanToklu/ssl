@@ -1,0 +1,99 @@
+<div class="k-report">
+  <header class="k-hero">
+    <div class="k-grade k-grade-{{ report.grade | lower }}" role="img"
+         aria-label="{{ _('Güvenlik notu {grade}, puan {score} / 100', grade=report.grade, score=report.score) }}">
+      <span class="k-grade-letter">{{ report.grade }}</span>
+      <span class="k-grade-score">{{ report.score }}/100</span>
+    </div>
+    <div>
+      <p class="k-eyebrow">{{ _("Güvenlik raporu") }}</p>
+      <h1>{{ report.display_name }}</h1>
+      <p class="k-lead">{{ grade_summary(report) }} {{ summary_sentence(report) }}</p>
+      <ul class="k-counts">
+        {% for severity in PROBLEM_SEVERITIES %}
+        {% set n = report.count(severity) %}
+        <li class="k-chip {{ 'k-zero' if n == 0 else 'k-' ~ severity.value }}">{{ n }} {{ severity | label }}</li>
+        {% endfor %}
+        <li class="k-chip k-pass">{{ report.passed | length }} {{ Severity.PASS | label }}</li>
+      </ul>
+      <p class="k-meta">{{ _("Tarama zamanı") }}: {{ report.finished_at | local_time }} · IP: {{ report.addresses | join(", ") }}</p>
+    </div>
+  </header>
+
+  {% set actions = top_actions(report) %}
+  {% if actions %}
+  <section class="k-section">
+    <h2>{{ _("Önce bunları yapın") }}</h2>
+    <ol class="k-actions">
+      {% for f in actions %}
+      <li><strong>{{ f.title | loc }}</strong><span>{{ f.recommendation | loc }}</span></li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  {% if report.problems %}
+  <section class="k-section">
+    <h2>{{ _("Bulunan sorunlar ({n})", n=report.problems | length) }}</h2>
+    {% for f in report.problems %}
+    {% include "_finding.html" %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if report.informational or report.notes %}
+  <section class="k-section">
+    <h2>{{ _("Bilgi ve öneriler") }}</h2>
+    {% for note in report.notes %}
+    <p class="k-note">{{ note | loc }}</p>
+    {% endfor %}
+    {% for f in report.informational %}
+    {% include "_finding.html" %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if report.passed %}
+  <section class="k-section">
+    <h2>{{ _("Başarılı kontroller") }}</h2>
+    <ul class="k-passed">
+      {% for f in report.passed %}
+      <li>{{ f.title | loc }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if report.software %}
+  <section class="k-section">
+    <h2>{{ _("Tespit edilen yazılımlar") }}</h2>
+    <div class="k-table-wrap">
+      <table class="k-table">
+        <thead><tr><th>{{ _("Yazılım") }}</th><th>{{ _("Sürüm") }}</th><th>{{ _("Nerede görüldü") }}</th></tr></thead>
+        <tbody>
+          {% for s in report.software %}
+          <tr>
+            <td>{{ s.name | loc }}</td>
+            <td>{{ s.version or _("gizli") }}{% if s.distro %} <span class="k-muted">({{ s.distro }})</span>{% endif %}</td>
+            <td>{{ s.source | loc }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if report.errors %}
+  <section class="k-section">
+    <h2>{{ _("Tamamlanamayan kontroller") }}</h2>
+    {% for error in report.errors %}
+    <p class="k-note">{{ error.message | loc }}</p>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <p class="k-footer">
+    {{ _("Bu rapor, sitenizin internetten görünen yüzüne yapılan otomatik bir taramaya dayanır ve sızma testinin yerini tutmaz.") }} Kalkan {{ report.tool_version }}
+  </p>
+</div>

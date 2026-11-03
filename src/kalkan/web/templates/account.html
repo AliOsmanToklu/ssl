@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Hesabım") }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ _("Hesabım") }}</h1></div>
+
+{% if new_token %}
+<section class="card token-reveal" role="status">
+  <h2>{{ _("Yeni API tokeniniz: {name}", name=new_token_name) }}</h2>
+  <p>{{ _m("Bu değeri şimdi kopyalayın; güvenliğiniz için <strong>bir daha gösterilmeyecek</strong>.") }}</p>
+  <p><code class="copyable">{{ new_token }}</code></p>
+  <p class="muted small">{{ _("Kullanım:") }} <code>Authorization: Bearer {{ new_token[:12] }}…</code> · <a href="/api/docs">{{ _("API belgeleri") }}</a></p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>{{ _("Profil") }}</h2>
+  <dl class="kv">
+    <dt>{{ _("E-posta") }}</dt><dd>{{ user.email }}</dd>
+    <dt>{{ _("Durum") }}</dt>
+    <dd>
+      {% if user.email_verified %}<span class="pill pill-ok">{{ _("Doğrulandı") }}</span>
+      {% else %}
+      <span class="pill pill-wait">{{ _("Doğrulanmadı") }}</span>
+      <form method="post" action="/verify-email/resend" class="inline">
+        {% include "_csrf.html" %}
+        <button type="submit" class="link-button link-accent">{{ _("Doğrulama e-postasını tekrar gönder") }}</button>
+      </form>
+      {% endif %}
+    </dd>
+    <dt>{{ _("Üyelik") }}</dt><dd>{{ user.created_at | local_time }}</dd>
+    <dt>{{ _("Dil") }}</dt>
+    <dd>
+      {% for code, name in LANGUAGES.items() %}
+      {% if code == lang %}<strong>{{ name }}</strong>{% else %}<a href="/lang/{{ code }}?next=/account" lang="{{ code }}">{{ name }}</a>{% endif %}{{ " · " if not loop.last }}
+      {% endfor %}
+      <span class="muted small">{{ _("(e-postalar ve raporlar bu dilde gönderilir)") }}</span>
+    </dd>
+  </dl>
+</section>
+
+<section class="card">
+  <h2>{{ _("Şifre değiştir") }}</h2>
+  <form method="post" action="/account/password" class="form form-narrow">
+    {% include "_csrf.html" %}
+    <label>{{ _("Mevcut şifre") }}
+      <input type="password" name="current_password" required autocomplete="current-password">
+    </label>
+    <label>{{ _("Yeni şifre") }}
+      <input type="password" name="password" required minlength="10" autocomplete="new-password">
+    </label>
+    <label>{{ _("Yeni şifre (tekrar)") }}
+      <input type="password" name="password_confirm" required minlength="10" autocomplete="new-password">
+    </label>
+    <div><button type="submit" class="btn">{{ _("Şifreyi değiştir") }}</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{{ _("API tokenleri") }}</h2>
+  <p class="muted">{{ _("Kalkan'ı kendi sistemlerinizden (ör. CI hattı) kullanmak için. Bir token, oluşturulduğu çalışma alanında sizin yetkinizle çalışır.") }} <a href="/api/docs">{{ _("API belgeleri") }} →</a></p>
+  {% if tokens %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ _("Ad") }}</th><th>{{ _("Token") }}</th><th>{{ _("Çalışma alanı") }}</th><th>{{ _("Oluşturulma") }}</th><th>{{ _("Son kullanım") }}</th><th></th></tr></thead>
+      <tbody>
+        {% for token in tokens %}
+        <tr>
+          <td>{{ token.name }}</td>
+          <td><code>{{ token.prefix }}…</code></td>
+          <td>{{ token.organization.name }}</td>
+          <td>{{ token.created_at | local_time }}</td>
+          <td>{{ token.last_used_at | local_time if token.last_used_at else "-" }}</td>
+          <td class="right">
+            <form method="post" action="/account/tokens/{{ token.id }}/delete" class="inline">
+              {% include "_csrf.html" %}
+              <button type="submit" class="link-button link-danger">{{ _("Sil") }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% if membership and membership.organization.limits.api %}
+  <form method="post" action="/account/tokens" class="inline-form token-form">
+    {% include "_csrf.html" %}
+    <label class="grow">
+      <span class="sr-only">{{ _("Token adı") }}</span>
+      <input type="text" name="name" placeholder="{{ _("Token adı (ör. CI hattı)") }}" required maxlength="100">
+    </label>
+    <button type="submit" class="btn">{{ _("{organization} için token oluştur", organization=membership.organization.name) }}</button>
+  </form>
+  {% else %}
+  <p class="muted small">{{ _("API erişimi Pro ve Ajans planlarında kullanılabilir.") }} <a href="/team">{{ _("Planı gör") }} →</a></p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ _("Verilerim") }}</h2>
+  <p class="muted">{{ _("Hesabınız, çalışma alanlarınız, alan adlarınız ve tüm tarama raporlarınız tek bir JSON dosyasında (KVKK kapsamında veri taşınabilirliği).") }}</p>
+  <a class="btn btn-ghost" href="/account/export.json">{{ _("Verilerimi indir") }}</a>
+</section>
+
+<details class="card danger-zone">
+  <summary>{{ _("Hesabı sil") }}</summary>
+  <form method="post" action="/account/delete" class="form form-narrow">
+    {% include "_csrf.html" %}
+    <p class="muted">{{ _("Hesabınız ve API tokenleriniz kalıcı olarak silinir. Tek üyesi olduğunuz çalışma alanları alan adları ve raporlarıyla birlikte silinir; başka üyeleri olan çalışma alanları onlara kalır. Bu işlem geri alınamaz.") }}</p>
+    <label>{{ _("Onaylamak için şifreniz") }}
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <div><button type="submit" class="btn btn-danger">{{ _("Hesabımı kalıcı olarak sil") }}</button></div>
+  </form>
+</details>
+{% endblock %}

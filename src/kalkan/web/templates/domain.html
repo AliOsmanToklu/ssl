@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ domain.display_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a href="/dashboard">← {{ _("Alan adlarım") }}</a></p>
+    <h1>{{ domain.display_name }}</h1>
+  </div>
+  {% if can_scan %}
+  <form method="post" action="/domains/{{ domain.id }}/scans">
+    {% include "_csrf.html" %}
+    <button type="submit" class="btn">{{ _("Taramayı başlat") }}</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if not domain.is_verified %}
+<section class="card">
+  <h2>{{ _("1. Adım: Sitenin size ait olduğunu doğrulayın") }}</h2>
+  {% if can_manage %}
+  <p class="muted">{{ _m("Kalkan yalnızca sahibi tarafından doğrulanmış siteleri tarar. Aşağıdaki yöntemlerden <strong>birini</strong> uygulayıp \"Doğrula\" düğmesine basın.") }}</p>
+
+  <div class="methods">
+    <div class="method">
+      <h3>{{ _("Yöntem A: DNS kaydı (önerilen)") }}</h3>
+      <p>{{ _m("Alan adınızı aldığınız firmanın (veya Cloudflare'in) DNS ayarlarına şu <strong>TXT</strong> kaydını ekleyin:") }}</p>
+      <dl class="kv">
+        <dt>{{ _("Tür") }}</dt><dd><code>TXT</code></dd>
+        <dt>{{ _("Ad / Host") }}</dt><dd><code>{{ txt_names[-1] }}</code> <span class="muted small">{{ _m("(panelde genellikle <code>@</code>)") }}</span></dd>
+        <dt>{{ _("Değer") }}</dt><dd><code class="copyable">{{ txt_value }}</code></dd>
+      </dl>
+    </div>
+    <div class="method">
+      <h3>{{ _("Yöntem B: Dosya yükleme") }}</h3>
+      <p>{{ _("Sitenize şu adreste açılan bir metin dosyası yükleyin:") }}</p>
+      <dl class="kv">
+        <dt>{{ _("Adres") }}</dt><dd><code>https://{{ domain.hostname }}{{ file_path }}</code></dd>
+        <dt>{{ _("İçerik") }}</dt><dd><code class="copyable">{{ domain.verification_token }}</code></dd>
+      </dl>
+    </div>
+  </div>
+
+  <form method="post" action="/domains/{{ domain.id }}/verify">
+    {% include "_csrf.html" %}
+    <button type="submit" class="btn">{{ _("Doğrula") }}</button>
+  </form>
+  {% else %}
+  <p class="muted">{{ _("Kalkan yalnızca sahibi tarafından doğrulanmış siteleri tarar. Doğrulamayı çalışma alanının yöneticileri yapabilir.") }}</p>
+  {% endif %}
+</section>
+{% else %}
+<section class="card">
+  <p class="verified">
+    <span class="pill pill-ok">{{ _("Doğrulandı") }}</span>
+    {% if domain.verification_method == "dns" %}
+    {{ _("{date} tarihinde DNS kaydıyla doğrulandı.", date=domain.verified_at | local_time) }}
+    {% else %}
+    {{ _("{date} tarihinde dosya ile doğrulandı.", date=domain.verified_at | local_time) }}
+    {% endif %}
+  </p>
+</section>
+{% endif %}
+
+{% if domain.is_verified %}
+<section class="card">
+  <h2>{{ _("Otomatik tarama") }}</h2>
+  {% if can_manage %}
+  <form method="post" action="/domains/{{ domain.id }}/settings" class="schedule-form">
+    {% include "_csrf.html" %}
+    <label>{{ _("Sıklık") }}
+      <select name="interval_days">
+        {% for days, label in intervals.items() %}
+        {% if days in allowed_intervals %}
+        <option value="{{ days }}" {{ "selected" if days == domain.scan_interval_days }}>{{ label | loc }}</option>
+        {% else %}
+        <option value="{{ days }}" disabled>{{ _("{label} (üst planlarda)", label=label | loc) }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="notify_email" value="yes" {{ "checked" if domain.notify_email }}>
+      <span>{{ _("Yeni önemli sorun bulunursa veya sertifika süresi dolmak üzereyse ekibe e-posta gönder") }}</span>
+    </label>
+    <button type="submit" class="btn btn-ghost">{{ _("Kaydet") }}</button>
+  </form>
+  {% else %}
+  <p>{{ intervals[domain.scan_interval_days] | loc }}</p>
+  {% endif %}
+  {% if domain.next_scan_at %}
+  <p class="muted small">{{ _("Sonraki otomatik tarama: {date}", date=domain.next_scan_at | local_time) }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if chart %}{% include "_score_chart.html" %}{% endif %}
+
+<section class="card">
+  <h2>{{ _("Tarama geçmişi") }}</h2>
+  {% if domain.scans %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ _("Tarih") }}</th><th>{{ _("Durum") }}</th><th>{{ _("Not") }}</th><th>{{ _("Başlatan") }}</th><th></th></tr></thead>
+      <tbody>
+        {% for scan in domain.scans %}
+        <tr>
+          <td>{{ scan.created_at | local_time }}</td>
+          <td>{{ scan.status.label | loc }}</td>
+          <td>
+            {% if scan.grade %}<span class="grade-pill grade-{{ scan.grade | lower }}">{{ scan.grade }}</span> {{ scan.score }}/100{% else %}-{% endif %}
+          </td>
+          <td>
+            {% if scan.trigger.value == "manual" and scan.requested_by %}{{ scan.requested_by.email }}
+            {% else %}{{ scan.trigger.label | loc }}{% endif %}
+          </td>
+          <td class="right"><a href="/scans/{{ scan.id }}">{{ _("Raporu aç") }} →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">{{ _("Bu alan adı için henüz tarama yapılmadı.") }}</p>
+  {% endif %}
+</section>
+
+{% if can_manage %}
+<details class="danger-zone">
+  <summary>{{ _("Alan adını sil") }}</summary>
+  <form method="post" action="/domains/{{ domain.id }}/delete">
+    {% include "_csrf.html" %}
+    <p class="muted">{{ _("Alan adı ve tüm tarama geçmişi kalıcı olarak silinir.") }}</p>
+    <button type="submit" class="btn btn-danger">{{ _("Kalıcı olarak sil") }}</button>
+  </form>
+</details>
+{% endif %}
+{% endblock %}

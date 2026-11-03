@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Alan adlarım") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ organization.name }} · {{ organization.limits.label | loc }}</p>
+    <h1>{{ _("Alan adlarım") }}</h1>
+  </div>
+  <p class="muted small">{{ _("{used}/{limit} alan adı kullanılıyor", used=usage.domains[0], limit=usage.domains[1]) }}</p>
+</div>
+
+{% if can_manage %}
+<section class="card">
+  <form method="post" action="/domains" class="inline-form">
+    {% include "_csrf.html" %}
+    <label class="grow">
+      <span class="sr-only">{{ _("Alan adı") }}</span>
+      <input type="text" name="hostname" placeholder="{{ _("firmaniz.com.tr") }}" required maxlength="253"
+             autocomplete="off" autocapitalize="off" spellcheck="false">
+    </label>
+    <button type="submit" class="btn">{{ _("Alan adı ekle") }}</button>
+  </form>
+</section>
+{% endif %}
+
+{% if domains %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>{{ _("Alan adı") }}</th><th>{{ _("Durum") }}</th><th>{{ _("Son not") }}</th><th>{{ _("Son tarama") }}</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for domain in domains %}
+        {% set last = domain.latest_finished_scan %}
+        <tr>
+          <td><a href="/domains/{{ domain.id }}">{{ domain.display_name }}</a></td>
+          <td>
+            {% if domain.is_verified %}<span class="pill pill-ok">{{ _("Doğrulandı") }}</span>
+            {% else %}<span class="pill pill-wait">{{ _("Doğrulama bekliyor") }}</span>{% endif %}
+          </td>
+          <td>
+            {% if last %}<span class="grade-pill grade-{{ last.grade | lower }}">{{ last.grade }}</span> {{ last.score }}/100
+            {% else %}<span class="muted">-</span>{% endif %}
+          </td>
+          <td>{{ last.finished_at | local_time if last else "-" }}</td>
+          <td class="right"><a href="/domains/{{ domain.id }}">{{ _("Aç") }} →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% elif can_manage %}
+<section class="card empty">
+  <h2>{{ _("Henüz alan adı eklemediniz") }}</h2>
+  <p class="muted">{{ _("Yukarıya web sitenizin adresini yazın. Sonraki adımda size ait olduğunu doğrulayacağız.") }}</p>
+</section>
+{% else %}
+<section class="card empty">
+  <h2>{{ _("Bu çalışma alanında henüz alan adı yok") }}</h2>
+  <p class="muted">{{ _("Alan adlarını yöneticiler ekler. Eklendiğinde raporları burada görürsünüz.") }}</p>
+</section>
+{% endif %}
+{% endblock %}

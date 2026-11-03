@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ _("{domain} raporu", domain=domain.display_name) }}{% endblock %}
+{% block head %}
+{% if scan.status.is_active %}<noscript><meta http-equiv="refresh" content="5"></noscript>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="page-head k-no-print">
+  <p class="eyebrow"><a href="/domains/{{ domain.id }}">← {{ domain.display_name }}</a></p>
+  {% if report %}
+  <div class="actions">
+    <a class="btn btn-ghost" href="/scans/{{ scan.id }}/report.pdf">{{ _("PDF olarak indir") }}</a>
+    <a class="btn btn-ghost" href="/scans/{{ scan.id }}/report.html">HTML</a>
+    <a class="btn btn-ghost" href="/scans/{{ scan.id }}/report.json">JSON</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if scan.status.is_active %}
+<section class="card center" data-scan-poll="/api/scans/{{ scan.id }}"
+         data-label-queued="{{ _("Sırada") }}" data-label-running="{{ _("Taranıyor") }}">
+  <div class="spinner" aria-hidden="true"></div>
+  <h1>{{ _("{domain} taranıyor…", domain=domain.display_name) }}</h1>
+  <p class="muted">{{ _("Tarama genellikle bir dakikadan kısa sürer. Bu sayfa tamamlandığında kendiliğinden yenilenir.") }}</p>
+  <p class="muted small">{{ _("Durum:") }} <span data-scan-status>{{ scan.status.label | loc }}</span></p>
+</section>
+{% elif scan.status.value == "failed" %}
+<section class="card">
+  <h1>{{ _("Tarama tamamlanamadı") }}</h1>
+  <div class="flash flash-error" role="alert">{{ scan_error | loc if scan_error else _("Bilinmeyen hata.") }}</div>
+  <form method="post" action="/domains/{{ domain.id }}/scans">
+    {% include "_csrf.html" %}
+    <button type="submit" class="btn">{{ _("Tekrar dene") }}</button>
+  </form>
+</section>
+{% elif report %}
+{% if comparison %}{% include "_comparison.html" %}{% endif %}
+{% include "_report_body.html" %}
+{% endif %}
+{% endblock %}

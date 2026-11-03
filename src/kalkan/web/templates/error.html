@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Hata {status}", status=status) }}{% endblock %}
+{% block content %}
+<section class="card narrow center">
+  <p class="eyebrow">{{ _("Hata {status}", status=status) }}</p>
+  <h1>{{ message }}</h1>
+  <p><a class="btn" href="/">{{ _("Ana sayfaya dön") }}</a></p>
+</section>
+{% endblock %}

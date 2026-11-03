@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Yeni şifre belirleyin") }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>{{ _("Yeni şifre belirleyin") }}</h1>
+  {% if invalid %}
+  <div class="flash flash-error" role="alert">{{ invalid | loc }}</div>
+  <p><a class="btn" href="/forgot-password">{{ _("Yeni bağlantı iste") }}</a></p>
+  {% else %}
+  {% if error %}<div class="flash flash-error" role="alert">{{ error | loc }}</div>{% endif %}
+  <form method="post" action="/reset-password/{{ token }}" class="form">
+    {% include "_csrf.html" %}
+    <label>{{ _("Yeni şifre") }}
+      <input type="password" name="password" required minlength="10" autocomplete="new-password">
+    </label>
+    <label>{{ _("Yeni şifre (tekrar)") }}
+      <input type="password" name="password_confirm" required minlength="10" autocomplete="new-password">
+    </label>
+    <button type="submit" class="btn btn-block">{{ _("Şifreyi değiştir") }}</button>
+    <p class="muted small">{{ _("Şifreniz değişince diğer tüm cihazlardaki oturumlar kapatılır.") }}</p>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

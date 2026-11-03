@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{{ _("Güvenlik raporu: {domain}", domain=report.display_name) }}</title>
+  <style>
+{% include "report.css" %}
+  </style>
+</head>
+<body>
+  <main class="k-wrap">
+    <div class="k-brand">Kalkan</div>
+    {% include "_report_body.html" %}
+  </main>
+</body>
+</html>

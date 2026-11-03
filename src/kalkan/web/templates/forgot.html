@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Şifremi unuttum") }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>{{ _("Şifremi unuttum") }}</h1>
+  {% if sent %}
+  <div class="flash" role="status">{{ sent | loc }}</div>
+  <p class="muted small"><a href="/login">{{ _("Giriş sayfasına dön") }}</a></p>
+  {% else %}
+  <p class="muted">{{ _("Hesabınızın e-posta adresini girin; şifrenizi sıfırlamanız için bir bağlantı gönderelim.") }}</p>
+  {% if error %}<div class="flash flash-error" role="alert">{{ error | loc }}</div>{% endif %}
+  <form method="post" action="/forgot-password" class="form">
+    {% include "_csrf.html" %}
+    <label>{{ _("E-posta") }}
+      <input type="email" name="email" autocomplete="email" required maxlength="320">
+    </label>
+    <button type="submit" class="btn btn-block">{{ _("Sıfırlama bağlantısı gönder") }}</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

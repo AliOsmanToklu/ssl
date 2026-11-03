@@ -1,0 +1,31 @@
+<section class="card comparison">
+  <h2>{{ _("Önceki taramaya göre") }}</h2>
+  {% set delta = comparison.score_delta %}
+  <p>
+    {{ comparison.previous_at | local_time }}:
+    <span class="grade-pill grade-{{ comparison.previous_grade | lower }}">{{ comparison.previous_grade }}</span> {{ comparison.previous_score }}
+    → <span class="grade-pill grade-{{ report.grade | lower }}">{{ report.grade }}</span> {{ report.score }}
+    {% if delta > 0 %}<span class="delta delta-up">{{ _("(+{n} puan)", n=delta) }}</span>
+    {% elif delta < 0 %}<span class="delta delta-down">{{ _("({n} puan)", n=delta) }}</span>
+    {% else %}<span class="muted">{{ _("(puan değişmedi)") }}</span>{% endif %}
+    · <a href="/scans/{{ previous.id }}">{{ _("önceki rapor") }}</a>
+  </p>
+  {% if comparison.unchanged %}
+  <p class="muted">{{ _("Önceki taramadan bu yana çözülen veya yeni çıkan bir sorun yok.") }}</p>
+  {% else %}
+  <div class="cmp-grid">
+    <div>
+      <h3>{{ _("Çözülen sorunlar ({n})", n=comparison.resolved | length) }}</h3>
+      {% if comparison.resolved %}
+      <ul>{% for f in comparison.resolved %}<li>{{ f.title | loc }}</li>{% endfor %}</ul>
+      {% else %}<p class="muted small">{{ _("Yok") }}</p>{% endif %}
+    </div>
+    <div>
+      <h3>{{ _("Yeni veya kötüleşen sorunlar ({n})", n=comparison.new_problems | length) }}</h3>
+      {% if comparison.new_problems %}
+      <ul>{% for f in comparison.new_problems %}<li><span class="k-badge k-{{ f.severity.value }}">{{ f.severity | label }}</span> {{ f.title | loc }}</li>{% endfor %}</ul>
+      {% else %}<p class="muted small">{{ _("Yok") }}</p>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>

@@ -1,0 +1,47 @@
+<section class="card">
+  <h2>{{ _("Puan geçmişi") }}</h2>
+  <p class="muted small">{{ _("Son {n} taramanın puanı. Bir noktanın üzerine gelince ayrıntısı görünür, tıklayınca raporu açılır. Tüm değerler aşağıdaki tarama geçmişi tablosunda.", n=chart.points | length) }}</p>
+  <figure class="score-chart">
+    <svg class="sc-gutter" height="{{ chart.height }}" aria-hidden="true" focusable="false">
+      {% for y, score in chart.ticks %}
+      <text x="100%" dx="-6" y="{{ y }}" text-anchor="end">{{ score }}</text>
+      {% endfor %}
+    </svg>
+    <svg class="sc-plot" height="{{ chart.height }}" role="img"
+         aria-label="{{ _("Puan geçmişi: {first_date} tarihinde {first_score}, {last_date} tarihinde {last_score}", first_date=chart.first.when, first_score=chart.first.score, last_date=chart.last.when, last_score=chart.last.score) }}">
+      {% for y in chart.gridlines %}
+      <line class="sc-grid" x1="0" x2="100%" y1="{{ y }}" y2="{{ y }}"></line>
+      {% endfor %}
+      <line class="sc-axis" x1="0" x2="100%" y1="{{ chart.bottom }}" y2="{{ chart.bottom }}"></line>
+      {% for s in chart.segments %}
+      <line class="sc-line" x1="{{ s.x1 }}%" y1="{{ s.y1 }}" x2="{{ s.x2 }}%" y2="{{ s.y2 }}"></line>
+      {% endfor %}
+      <text class="sc-x" x="{{ chart.first.x }}%" y="{{ chart.height - 4 }}" aria-hidden="true">{{ chart.first.when }}</text>
+      <text class="sc-x" x="{{ chart.last.x }}%" y="{{ chart.height - 4 }}" text-anchor="end" aria-hidden="true">{{ chart.last.when }}</text>
+      <text class="sc-end-label" x="{{ chart.last.x }}%" dx="-9" y="{{ chart.last.y }}" dy="-9" text-anchor="end" aria-hidden="true">{{ chart.last.score }}</text>
+      {# dots in their own layer below every tooltip (SVG paints in document order) #}
+      {% for p in chart.points %}
+      <circle class="sc-dot" cx="{{ p.x }}%" cy="{{ p.y }}" r="4.5"></circle>
+      {% endfor %}
+      {% for p in chart.points %}
+      <a class="sc-point" href="/scans/{{ p.scan_id }}" aria-label="{{ _("{date}: {score}/100, not {grade}. Raporu aç.", date=p.when, score=p.score, grade=p.grade) }}">
+        <svg x="{{ p.x }}%" y="0" overflow="visible">
+          <rect class="sc-hit" x="-12" y="{{ chart.top }}" width="24" height="{{ chart.bottom - chart.top }}"></rect>
+          <line class="sc-cross" x1="0" x2="0" y1="{{ chart.top }}" y2="{{ chart.bottom }}"></line>
+          <circle class="sc-dot-active" cx="0" cy="{{ p.y }}" r="6"></circle>
+          <g class="sc-tip">
+            <rect x="{{ p.tip_x - 56 }}" y="{{ p.tip_y - 36 }}" width="112" height="34" rx="6"></rect>
+            <text class="sc-tip-value" x="{{ p.tip_x }}" y="{{ p.tip_y - 21 }}" text-anchor="middle">{{ p.score }}/100 · {{ p.grade }}</text>
+            <text class="sc-tip-date" x="{{ p.tip_x }}" y="{{ p.tip_y - 8 }}" text-anchor="middle">{{ p.when }}</text>
+          </g>
+        </svg>
+      </a>
+      {% endfor %}
+    </svg>
+    <svg class="sc-gutter sc-bands" height="{{ chart.height }}" aria-hidden="true" focusable="false">
+      {% for y, grade in chart.bands %}
+      <text x="8" y="{{ y }}">{{ grade }}</text>
+      {% endfor %}
+    </svg>
+  </figure>
+</section>

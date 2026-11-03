@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Web sitenizin güvenlik karnesi") }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='landing.css') }}">
+<script src="{{ url_for('static', path='landing.js') }}"></script>
+{% endblock %}
+{% block header %}{% endblock %}
+{% block main %}
+<main class="l-page">
+
+  {# --- first screen: what this is, and Kalkan reading this very page ------------- #}
+  <section class="l-hero" aria-labelledby="l-title">
+    <div class="l-hero-text">
+      <a class="logo l-logo" href="/"><span class="logo-mark" aria-hidden="true"></span>Kalkan</a>
+      {% if flashes %}<div class="l-flashes">{% include "_flashes.html" %}</div>{% endif %}
+      <div class="l-hero-copy">
+        <h1 id="l-title" class="l-title"><span class="l-mask"><span class="l-rise">{{ _("Web sitenizin güvenlik karnesi") }}</span></span></h1>
+        <p class="l-lead l-after">{{ _("Kalkan sitenizi dışarıdan tarar: SSL sertifikası, açık portlar, eski yazılımlar ve sahte e-posta koruması. Sonucu A'dan F'ye bir notla ve ne yapmanız gerektiğiyle, sade bir dille anlatır.") }}</p>
+        <p class="l-actions l-after">
+          <a class="btn" href="/register">{{ _("Ücretsiz tarama başlat") }}</a>
+          <a class="l-link" href="#nasil">{{ _("Nasıl çalışır?") }} →</a>
+        </p>
+      </div>
+    </div>
+    <div class="l-hero-stage">
+      <a class="l-signin" href="/login">{{ _("Giriş yap") }}</a>
+      <div class="l-selfcheck" data-ui data-selfcheck
+           data-ok="{{ _("var") }}" data-missing="{{ _("yok") }}"
+           data-summary="{{ _("{ok}/{total} başlık yerinde") }}">
+        <p class="l-sc-title">{{ _("Kalkan bu sayfayı şimdi okudu") }}</p>
+        <ul class="l-sc-rows">
+          {% for row in self_check %}
+          <li class="l-sc-row {{ 'is-ok' if row.value else 'is-missing' }}" data-header="{{ row.header }}">
+            <span class="l-sc-name">{{ row.label | loc }}</span>
+            <span class="l-sc-value" data-value>{{ row.value or _("yok") }}</span>
+            <span class="k-badge {{ 'k-pass' if row.value else 'k-medium' }}" data-state>{{ _("var") if row.value else _("yok") }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="l-sc-summary" data-summary-out>{{ _("{ok}/{total} başlık yerinde", ok=self_check | selectattr("value") | list | length, total=self_check | length) }}</p>
+      </div>
+      <p class="l-caption">{{ _("Kalkan'ın bir sitede baktığı tarayıcı güvenlik ayarları; burada bu sayfanın kendi yanıtından okunuyor.") }}</p>
+    </div>
+  </section>
+
+  {# --- what it checks: one finding of the sample site beside each check ------------ #}
+  <section class="l-section l-checks" aria-labelledby="l-checks-title">
+    <h2 id="l-checks-title" class="l-h2 reveal">{{ _("Neleri kontrol ediyoruz?") }}</h2>
+    <p class="l-intro reveal">{{ _("Bir saldırganın internetten görebildiği her şeyi: sertifikadan e-posta ayarlarına kadar. Her bulgu, ne anlama geldiği ve ne yapmanız gerektiğiyle birlikte gelir.") }}</p>
+    {% for check in checks %}
+    {% set f = check.finding %}
+    <article class="l-module reveal">
+      <div class="l-proof" data-ui>
+        <div class="k-finding k-{{ f.severity.value }}">
+          <div class="k-finding-head"><span class="k-badge">{{ f.severity | label }}</span></div>
+          <p class="l-proof-title">{{ f.title | loc }}</p>
+        </div>
+      </div>
+      <div class="l-module-text">
+        <h3>{{ check.heading | loc }}</h3>
+        <p>{{ f.description | loc }}</p>
+        {% if f.recommendation %}<p class="l-soft">{{ f.recommendation | loc }}</p>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+    <article class="l-module reveal">
+      <div class="l-proof" data-ui>
+        <div class="l-mail">
+          <p class="l-mail-from">Kalkan &lt;no-reply@kalkan&gt;</p>
+          <p class="l-mail-subject">{{ _("Kalkan: {domain} için {n} yeni önemli sorun", domain=sample_domain, n=1) }}</p>
+          <p class="l-mail-line">[{{ remote_desktop.severity | label }}] {{ remote_desktop.title | loc }}</p>
+        </div>
+      </div>
+      <div class="l-module-text">
+        <h3>{{ _("Sonra da takipte kalır") }}</h3>
+        <p>{{ _("Kalkan sitenizi her hafta ya da her ay yeniden tarar. Yeni ve önemli bir sorun çıktığında ya da notunuz düştüğünde ekibinize e-posta gönderir; değişiklik yoksa sizi rahatsız etmez.") }}</p>
+        <p class="l-soft">{{ _("Her raporda bir önceki taramayla karşılaştırma ve puan geçmişi grafiği de bulunur.") }}</p>
+      </div>
+    </article>
+  </section>
+
+  {# --- how it works: one fragment, three states ----------------------------------- #}
+  <section class="l-section l-steps" id="nasil" aria-labelledby="l-steps-title">
+    <h2 id="l-steps-title" class="l-h2 reveal">{{ _("Nasıl çalışır?") }}</h2>
+    <div class="l-steps-text">
+      <div class="l-step is-active" data-step="1">
+        <p class="l-step-line">{{ _("Önce alan adınızı yazın.") }}</p>
+        <p>{{ _("Hesap ücretsiz; kredi kartı istemiyoruz. Ekip arkadaşlarınızı veya web sitenizi yöneten firmayı da davet edebilirsiniz.") }}</p>
+      </div>
+      <div class="l-step" data-step="2">
+        <p class="l-step-line">{{ _("Sonra sitenin sizin olduğunu gösterin.") }}</p>
+        <p>{{ _("DNS ayarlarınıza tek satırlık bir kayıt ekleyin ya da sitenize küçük bir dosya yükleyin. Böylece kimse başkasının sitesini Kalkan'la tarayamaz.") }}</p>
+      </div>
+      <div class="l-step" data-step="3">
+        <p class="l-step-line">{{ _("Bir dakika içinde karneniz hazır.") }}</p>
+        <p>{{ _("A'dan F'ye not, önce yapılması gerekenler ve web sorumlunuza iletebileceğiniz bir PDF rapor.") }}</p>
+      </div>
+    </div>
+    <div class="l-steps-stage">
+      <div class="l-stage" data-ui data-stage="3">
+        <div class="l-state" data-state-of="1">
+          <p class="l-state-title">{{ _("Alan adlarım") }}</p>
+          <div class="l-field"><span>{{ sample_domain }}</span><span class="l-caret" aria-hidden="true"></span></div>
+          <span class="l-fake-btn">{{ _("Alan adı ekle") }}</span>
+          <p class="l-state-note">{{ _("Planınız: {plan} · {used}/{limit} alan adı", plan=plans[free_plan].label | loc, used=0, limit=plans[free_plan].domains) }}</p>
+        </div>
+        <div class="l-state" data-state-of="2">
+          <p class="l-state-title">{{ _("Yöntem A: DNS kaydı (önerilen)") }}</p>
+          <table class="l-dns">
+            <tr><th scope="row">{{ _("Tür") }}</th><td>TXT</td></tr>
+            <tr><th scope="row">{{ _("Ad / Host") }}</th><td>{{ sample_domain }}</td></tr>
+            <tr><th scope="row">{{ _("Değer") }}</th><td class="l-break">kalkan-site-verification={{ token }}</td></tr>
+          </table>
+          <p class="l-state-note"><span class="pill pill-ok">{{ _("Doğrulandı") }}</span> {{ _("DNS kaydı bulundu.") }}</p>
+        </div>
+        <div class="l-state" data-state-of="3">
+          <div class="l-report-head">
+            <div class="k-grade k-grade-{{ grade | lower }} l-grade-sm"><span class="k-grade-letter">{{ grade }}</span><span class="k-grade-score">{{ score }}/100</span></div>
+            <div>
+              <p class="l-state-title">{{ sample_domain }}</p>
+              <p class="l-state-note">{{ grade_summary_text | loc }}</p>
+            </div>
+          </div>
+          <p class="l-state-sub">{{ _("Önce bunları yapın") }}</p>
+          <ol class="l-todo">
+            {% for f in findings[:3] %}<li>{{ f.title | loc }}</li>{% endfor %}
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# --- the live thing: fix the sample site and watch the grade --------------------- #}
+  <section class="l-section l-demo" aria-labelledby="l-demo-title">
+    <h2 id="l-demo-title" class="l-h2 reveal">{{ _("Düzelttikçe not yükselir") }}</h2>
+    <p class="l-intro reveal">{{ _("Örnek bir sitenin bulguları, Kalkan'ın gerçek puanlama kurallarıyla. Her sorun ağırlığı kadar puan düşürür; kritik ve yüksek sorunlar ayrıca notun çıkabileceği üst sınırı belirler.") }}</p>
+    <div class="l-panel reveal" data-ui data-regrade data-rules="{{ rules }}">
+      <div class="l-panel-report">
+        <div class="l-report-head">
+          <div class="k-grade k-grade-{{ grade | lower }}" data-grade-box>
+            <span class="k-grade-letter" data-grade>{{ grade }}</span>
+            <span class="k-grade-score"><span data-score>{{ score }}</span>/100</span>
+          </div>
+          <div>
+            <p class="l-state-title">{{ sample_domain }}</p>
+            <p class="l-state-note" data-grade-summary>{{ grade_summary_text | loc }}</p>
+          </div>
+        </div>
+        <ul class="l-open" aria-live="polite">
+          {% for f in findings %}
+          <li class="k-{{ f.severity.value }}" data-finding="{{ loop.index0 }}"><span class="k-badge">{{ f.severity | label }}</span> {{ f.title | loc }}</li>
+          {% endfor %}
+        </ul>
+        <a class="l-link l-panel-link" href="/register">{{ _("Kendi sitenizi tarayın") }} →</a>
+      </div>
+      <fieldset class="l-panel-controls">
+        <legend>{{ _("Düzeltildi") }}</legend>
+        {% for f, fix in fixes %}
+        <label class="l-toggle">
+          <span>{{ fix | loc }}</span>
+          <input type="checkbox" data-fix="{{ loop.index0 }}" data-severity="{{ f.severity.value }}">
+        </label>
+        {% endfor %}
+      </fieldset>
+      <template data-summaries>
+        {% for letter, text in grade_summaries.items() %}<span data-for="{{ letter }}">{{ text | loc }}</span>{% endfor %}
+      </template>
+    </div>
+    <p class="l-after-panel reveal">{{ _("Yukarıdan başlayın: en ağır sorunu kapatmak notu en çok yükseltir. Raporlarınız da işleri bu sırayla verir.") }}</p>
+  </section>
+
+  {# --- plans, set like a menu ------------------------------------------------------ #}
+  <section class="l-section l-plans" aria-labelledby="l-plans-title">
+    <h2 id="l-plans-title" class="l-h2 reveal">{{ _("Planlar") }}</h2>
+    <div class="l-menu">
+      {% for plan, limits in plans.items() %}
+      <div class="l-menu-group reveal">
+        <h3 class="l-menu-name"><span>{{ limits.label | loc }}</span><span>{{ _("ücretsiz") if plan == free_plan else _("bize yazın") }}</span></h3>
+        <dl>
+          <div><dt>{{ _("Alan adı") }}</dt><dd>{{ limits.domains }}</dd></div>
+          <div><dt>{{ _("Alan adı başına günlük tarama") }}</dt><dd>{{ limits.scans_per_domain_per_day }}</dd></div>
+          <div><dt>{{ _("Otomatik tarama") }}</dt><dd>{{ _("haftalık ve aylık") if 7 in limits.intervals else _("aylık") }}</dd></div>
+          <div><dt>{{ _("Ekip üyesi") }}</dt><dd>{{ limits.members }}</dd></div>
+          <div><dt>{{ _("REST API") }}</dt><dd>{{ _("var") if limits.api else _("yok") }}</dd></div>
+        </dl>
+      </div>
+      {% endfor %}
+      <p class="l-menu-note reveal">{{ _("Her planda PDF rapor, e-posta uyarıları, önceki taramayla karşılaştırma ve Türkçe ile İngilizce rapor var. Ödeme altyapısı henüz yok; Pro ve Ajans planlarına şimdilik bize yazarak geçebilirsiniz.") }}</p>
+    </div>
+  </section>
+
+  {# --- questions, answered as reading text ---------------------------------------- #}
+  <section class="l-section l-faq" aria-labelledby="l-faq-title">
+    <h2 id="l-faq-title" class="l-h2 reveal">{{ _("Sık sorulanlar") }}</h2>
+    <div class="l-faq-text reveal">
+      <p><strong>{{ _("Tarama siteme zarar verir mi?") }}</strong> {{ _("Hayır. Kalkan saldırı denemesi yapmaz; yalnızca herkesin internetten görebildiği bilgilere bakar: sertifika, açık kapılar, sunucunun kendini tanıttığı başlıklar ve herkese açık dosyalar. Bir tarama birkaç düzine sıradan istekten oluşur.") }}</p>
+      <p><strong>{{ _("Neden sitenin bana ait olduğunu göstermem gerekiyor?") }}</strong> {{ _("Başkasının sitesini izinsiz taramak doğru değil ve bazı durumlarda suçtur. Doğrulama, Kalkan'ın yalnızca sahibinin istediği siteleri taramasını sağlar. Kayıt otuz günde bir yeniden kontrol edilir.") }}</p>
+      <p><strong>{{ _("Sızma testinin yerini tutar mı?") }}</strong> {{ _("Hayır. Kalkan en sık yapılan hataları hızla ve düzenli olarak yakalar; bir uzmanın elle yaptığı sızma testi ise uygulamanızın içindeki açıkları da arar. İkisi birbirini tamamlar.") }}</p>
+      <p><strong>{{ _("Paylaşımlı hosting kullanıyorum; açık portlar benim mi?") }}</strong> {{ _("Olmayabilir. Rapor bunu belirtir; o durumda bulguları hosting firmanıza iletmeniz yeterli. Site Cloudflare gibi bir hizmetin arkasındaysa port taraması o hizmetin sunucularını gösterir.") }}</p>
+      <p><strong>{{ _("Raporu web sorumluma nasıl iletirim?") }}</strong> {{ _("Raporu PDF olarak indirip gönderebilir ya da onu çalışma alanınıza üye olarak davet edebilirsiniz. Her bulgunun teknik ayrıntıları raporda yer alır.") }}</p>
+      <p><strong>{{ _("Ne sıklıkla taramalıyım?") }}</strong> {{ _("Sitenizde bir şey değiştiğinde ve en az ayda bir. Otomatik taramayı açarsanız Kalkan bunu sizin yerinize yapar ve yalnızca önemli bir değişiklik olduğunda yazar.") }}</p>
+      <p><strong>{{ _("Verilerim nerede, kimler görebilir?") }}</strong> {{ _("Raporlar yalnızca çalışma alanınızın üyelerine görünür. Tüm verilerinizi tek bir dosya olarak indirebilir, hesabınızı istediğiniz an kalıcı olarak silebilirsiniz.") }}</p>
+      <p><strong>{{ _("Kendi sistemlerimize bağlayabilir miyiz?") }}</strong> {{ _("Pro ve Ajans planlarında REST API var: alan adı ekleyebilir, tarama başlatabilir ve raporları JSON ya da PDF olarak alabilirsiniz.") }} <a href="/api/docs">{{ _("API belgeleri") }}</a></p>
+    </div>
+  </section>
+
+  {# --- the close ------------------------------------------------------------------- #}
+  <section class="l-section l-cta" aria-labelledby="l-cta-title">
+    <div class="l-cta-text">
+      <h2 id="l-cta-title" class="l-cta-line reveal">{{ _("Sitenizin karnesini görmek bir dakikanızı alır.") }}</h2>
+      <p class="reveal"><a class="btn" href="/register">{{ _("Ücretsiz tarama başlat") }}</a></p>
+    </div>
+    <div class="l-cta-proof" data-ui>
+      <div class="l-report-head">
+        <div class="k-grade k-grade-a l-grade-sm"><span class="k-grade-letter">A</span><span class="k-grade-score">100/100</span></div>
+        <div>
+          <p class="l-state-title">{{ sample_domain }}</p>
+          <p class="l-state-note">{{ grade_summaries["A"] | loc }}</p>
+        </div>
+      </div>
+      <p class="l-state-sub">{{ _("Önceki taramaya göre") }}</p>
+      <p class="l-state-note">F {{ score }} → A 100 <span class="delta delta-up">{{ _("(+{n} puan)", n=100 - score) }}</span></p>
+      <p class="l-state-sub">{{ _("Çözülen sorunlar ({n})", n=findings | length) }}</p>
+      <ul class="l-open l-solved">
+        {% for f in findings %}<li class="is-fixed"><span class="k-badge">{{ f.severity | label }}</span> {{ f.title | loc }}</li>{% endfor %}
+      </ul>
+    </div>
+  </section>
+</main>
+{% endblock %}
+{% block footer %}
+<footer class="l-footer">
+  <span class="l-soft">{{ _("Kalkan · web sitesi güvenlik karnesi") }}</span>
+  <nav class="l-footer-links" aria-label="{{ _("Bağlantılar") }}">
+    <a href="/login">{{ _("Giriş yap") }}</a>
+    <a href="/register">{{ _("Hesap oluştur") }}</a>
+    <a href="/api/docs">{{ _("API belgeleri") }}</a>
+  </nav>
+  <span class="l-footer-end">
+    {% for code, name in LANGUAGES.items() %}
+    {% if code == lang %}<strong aria-current="true" lang="{{ code }}">{{ name }}</strong>{% else %}<a href="/lang/{{ code }}?next=/" hreflang="{{ code }}" lang="{{ code }}">{{ name }}</a>{% endif %}
+    {% endfor %}
+    <span class="l-soft">· {{ app_version }}</span>
+  </span>
+</footer>
+{% endblock %}

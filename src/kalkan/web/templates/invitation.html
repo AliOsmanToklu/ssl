@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Davet") }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  {% if not invitation %}
+  <h1>{{ _("Davet geçersiz") }}</h1>
+  <p class="muted">{{ _("Davet bağlantısı geçersiz, kullanılmış veya süresi dolmuş. Sizi davet eden kişiden yeni bir davet isteyin.") }}</p>
+  <p><a class="btn" href="/">{{ _("Ana sayfaya dön") }}</a></p>
+  {% else %}
+  <p class="eyebrow">{{ _("Davet") }}</p>
+  <h1>{{ _("{organization} çalışma alanına katılın", organization=invitation.organization.name) }}</h1>
+  <p class="muted">
+    {% if invitation.invited_by %}{{ _("{inviter} sizi {role} olarak davet etti.", inviter=invitation.invited_by.email, role=invitation.role.label | loc) }}
+    {% else %}{{ _("{role} olarak davet edildiniz.", role=invitation.role.label | loc) }}{% endif %}
+  </p>
+  {% if user and email_matches %}
+  <form method="post" action="/invitations/{{ token }}/accept">
+    {% include "_csrf.html" %}
+    <button type="submit" class="btn btn-block">{{ _("Daveti kabul et") }}</button>
+  </form>
+  {% elif user %}
+  <div class="flash flash-error" role="alert">{{ _("Bu davet {email} adresine gönderildi. O adresle giriş yapın.", email=invitation.email) }}</div>
+  <form method="post" action="/logout">
+    {% include "_csrf.html" %}
+    <button type="submit" class="btn btn-ghost btn-block">{{ _("Çıkış yap") }}</button>
+  </form>
+  {% else %}
+  {% set back = "/invitations/" ~ token %}
+  <p>{{ _("Daveti kabul etmek için {email} adresiyle giriş yapın veya hesap oluşturun.", email=invitation.email) }}</p>
+  <p class="actions">
+    <a class="btn" href="/register?email={{ invitation.email | urlencode }}&amp;next={{ back | urlencode }}">{{ _("Hesap oluştur") }}</a>
+    <a class="btn btn-ghost" href="/login?next={{ back | urlencode }}">{{ _("Giriş yap") }}</a>
+  </p>
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

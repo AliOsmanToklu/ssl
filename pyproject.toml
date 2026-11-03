@@ -1,0 +1,129 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kalkan"
+dynamic = ["version"]
+description = "Plain-language website security scanner for small businesses: SSL/TLS, open ports, outdated software, email spoofing protection"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Ali Osman Toklu" }]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28,<1",
+    "cryptography>=44",
+    "dnspython>=2.7",
+    "idna>=3.7",
+    "jinja2>=3.1",
+    "fpdf2>=2.8",
+    "certifi>=2024.0.0",
+    "tzdata; sys_platform == 'win32'",
+]
+keywords = ["security", "scanner", "tls", "ssl", "port-scan", "saas", "sme"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Framework :: FastAPI",
+    "Topic :: Security",
+    "Topic :: Internet :: WWW/HTTP",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0",
+    "pydantic-settings>=2.6",
+    "python-multipart>=0.0.18",
+    "argon2-cffi>=23.1",
+    "itsdangerous>=2.2",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.14",
+    "prometheus-client>=0.21",
+]
+dev = [
+    "kalkan[web]",
+    "pytest>=8",
+    "pytest-asyncio>=0.25",
+    "pytest-cov>=5",
+    "ruff>=0.17,<0.18",
+    "pypdf>=5",
+    "mypy>=2.4,<3",
+]
+
+[project.urls]
+Repository = "https://github.com/AliOsmanToklu/ssl"
+
+[project.scripts]
+kalkan = "kalkan.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "kalkan.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+kalkan = [
+    "py.typed",
+    "locale/*.json",
+    "scanner/data/*.json",
+    "report/fonts/*",
+    "report/templates/*",
+    "web/templates/*",
+    "web/static/*",
+    "web/migrations/*.py",
+    "web/migrations/*.mako",
+    "web/migrations/versions/*.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "error::ResourceWarning",
+    # Starlette nudges TestClient users towards the httpx2 package; not actionable yet.
+    "ignore:Using `httpx` with `starlette.testclient`",
+]
+
+[tool.coverage.run]
+source = ["kalkan"]
+branch = true
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = ["if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "S", "ASYNC"]
+ignore = [
+    "RUF001", # Turkish text legitimately contains characters like "ı"
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S104", "S105", "S106", "S108"]
+"scripts/**" = ["S310"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests", "scripts"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["dns.*"]
+ignore_missing_imports = false

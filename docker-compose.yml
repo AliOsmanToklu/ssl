@@ -1,0 +1,74 @@
+# Production-like local stack: PostgreSQL, a one-shot migration job, the web app,
+# a separate scan worker and Mailpit (catches outgoing e-mail: http://127.0.0.1:8025).
+#   cp .env.example .env   (then set KALKAN_SECRET_KEY)
+#   docker compose up --build
+x-app-env: &app-env
+  KALKAN_DATABASE_URL: postgresql+psycopg://kalkan:${POSTGRES_PASSWORD:-kalkan-dev-password}@db:5432/kalkan
+  KALKAN_SECRET_KEY: ${KALKAN_SECRET_KEY:?set KALKAN_SECRET_KEY in .env}
+  KALKAN_PUBLIC_URL: ${KALKAN_PUBLIC_URL:-http://127.0.0.1:8000}
+  KALKAN_HTTPS_ONLY: ${KALKAN_HTTPS_ONLY:-false}
+  KALKAN_AUTO_MIGRATE: "false"  # the migrate service owns schema changes
+  KALKAN_EMBEDDED_WORKER: "false"
+  KALKAN_LOG_FORMAT: json
+  KALKAN_METRICS_TOKEN: ${KALKAN_METRICS_TOKEN:-}
+  KALKAN_MAIL_BACKEND: smtp
+  KALKAN_SMTP_HOST: ${KALKAN_SMTP_HOST:-mailpit}
+  KALKAN_SMTP_PORT: ${KALKAN_SMTP_PORT:-1025}
+  KALKAN_SMTP_STARTTLS: ${KALKAN_SMTP_STARTTLS:-false}
+  KALKAN_SMTP_USERNAME: ${KALKAN_SMTP_USERNAME:-}
+  KALKAN_SMTP_PASSWORD: ${KALKAN_SMTP_PASSWORD:-}
+  KALKAN_MAIL_FROM: ${KALKAN_MAIL_FROM:-Kalkan <no-reply@kalkan.local>}
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kalkan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kalkan-dev-password}
+      POSTGRES_DB: kalkan
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kalkan -d kalkan"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: .
+    command: ["kalkan", "migrate"]
+    environment: *app-env
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: .
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    command: ["kalkan", "worker"]
+    environment:
+      <<: *app-env
+      KALKAN_WORKER_METRICS_PORT: "9100"
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  mailpit:
+    image: axllent/mailpit:v1.33
+    ports:
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  pgdata:

@@ -1,0 +1,24 @@
+<article class="k-finding k-{{ f.severity.value }}">
+  <div class="k-finding-head">
+    <span class="k-badge">{{ f.severity | label }}</span>
+    <span class="k-cat">{{ f.category | label }}</span>
+  </div>
+  <h3>{{ f.title | loc }}</h3>
+  {% if f.description %}
+  <p><span class="k-label">{{ _("Ne anlama geliyor?") }}</span> {{ f.description | loc }}</p>
+  {% endif %}
+  {% if f.recommendation %}
+  <p><span class="k-label">{{ _("Ne yapmalısınız?") }}</span> {{ f.recommendation | loc }}</p>
+  {% endif %}
+  {% if f.details %}
+  <details>
+    <summary>{{ _("Teknik ayrıntılar") }}</summary>
+    <dl>
+      {% for key, value in f.details.items() %}
+      <dt>{{ key | loc }}</dt>
+      <dd>{{ value | loc }}</dd>
+      {% endfor %}
+    </dl>
+  </details>
+  {% endif %}
+</article>
